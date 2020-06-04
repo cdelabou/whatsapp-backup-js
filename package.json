@@ -1,0 +1,23 @@
+{
+  "name": "whatsapp-backup",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "baileys": "^1.0.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/banilaste/whatsapp-backup-js.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/banilaste/whatsapp-backup-js/issues"
+  },
+  "homepage": "https://github.com/banilaste/whatsapp-backup-js#readme"
+}
