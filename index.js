@@ -1,42 +1,58 @@
 const WhatsAppWeb = require("baileys")
 const fs = require("fs")
 
-/**
- * Extract all your WhatsApp conversations & save them to a file
- * produceAnonData => should the Id of the chat be recorded
- * */
-function extractChats (authCreds, outputFile, produceAnonData=false, offset=null) {
-	let client = new WhatsAppWeb() // instantiate an instance
-	client.autoReconnect = true
-	// internal extract function
-	const extract = function () {
+class ChatExtractor {
+	client = new WhatsAppWeb() // instantiate an instance
+	chats
+	offset
+	produceAnonData
+	outputFile
+
+	constructor(authCreds, outputFile, produceAnonData = false, offset = null) {
+		this.offset = offset;
+		this.produceAnonData = produceAnonData
+		this.outputFile = outputFile
+
+		this.client.autoReconnect = true
+	}
+
+
+	extract() {
 		let rows = 0
-		let chats = Object.keys(client.chats)
-		let encounteredOffset
-		if (offset) {
-			encounteredOffset = false
-		} else {
-			encounteredOffset = true
-			fs.writeFileSync(outputFile, "chat,input,output\n") // write header to file
+		this.encounteredOffset = !this.offset
+
+		if (!this.offset) {
+			fs.writeFileSync(this.outputFile, "chat,input,output\n") // write header to file
 		}
 
-		const extractChat = function (index) {
-			const id = chats[index]
-			if (id.includes("g.us") || !encounteredOffset) { // skip groups
-				if (id === offset) {
-					encounteredOffset = true
-				}
-				if (index+1 < chats.length) {
-					return extractChat(index+1)
-				}
-				return
-			}
-			console.log("extracting for " + id + "...")
+		this.extractChat(0)
+			.then(() => {
+				console.log("extracted all; total " + rows + " rows")
+				this.client.logout()
+			})
+	}
 
-			var curInput = ""
-			var curOutput = ""
-			var lastMessage
-			return client.loadEntireConversation (id, m => {
+
+	/**
+	 * Extract chat from it's index
+	 * @param {*} index 
+	 */
+	extractChat(index) {
+		const id = this.chats[index][1].jid
+		if (id.includes("g.us") || !this.encounteredOffset) { // skip groups
+			if (id === this.offset) {
+				this.encounteredOffset = true
+			}
+			if (index + 1 < this.chats.length) {
+				return this.extractChat(index + 1)
+			}
+			return
+		}
+		console.log("extracting for " + id + "...")
+		var curInput = ""
+		var curOutput = ""
+		var lastMessage
+		return this.client.loadEntireConversation(id, m => {
 				var text
 				if (!m.message) { // if message not present, return
 					return
@@ -61,38 +77,42 @@ function extractChats (authCreds, outputFile, produceAnonData=false, offset=null
 				// if the person who sent the message has switched, flush the row
 				if (lastMessage && !m.key.fromMe && lastMessage.key.fromMe) {
 
-					let row = "" + (produceAnonData ? "" : id) + ",\"" + curInput + "\",\"" + curOutput + "\"\n"
-					fs.appendFileSync (outputFile, row)
+					let row = "" + (this.produceAnonData ? "" : id) + ",\"" + curInput + "\",\"" + curOutput + "\"\n"
+					fs.appendFileSync(this.outputFile, row)
 					rows += 1
 					curInput = ""
 					curOutput = ""
 				}
 
 				if (m.key.fromMe) {
-					curOutput += curOutput === "" ? text : ("\n"+text)
+					curOutput += curOutput === "" ? text : ("\n" + text)
 				} else {
-					curInput += curInput === "" ? text : ("\n"+text)
+					curInput += curInput === "" ? text : ("\n" + text)
 				}
 
 				lastMessage = m
 			}, 50, false) // load from the start, in chunks of 50
-				.then (() => console.log("finished extraction for " + id))
-				.then (() => {
-					if (index+1 < chats.length) {
-						// return extractChat(index+1)
-					}
-				})
-		}
-
-		extractChat(0)
-			.then (() => {
-				console.log("extracted all; total " + rows + " rows")
-				client.logout ()
+			.then(() => console.log("finished extraction for " + id))
+			.then(() => {
+				if (index + 1 < this.chats.length) {
+					return this.extractChat(index + 1)
+				}
 			})
 	}
-	client.connect (authCreds)
-		.then (() => extract())
-		.catch (err => console.log("got error: " + err))
+
+	/**
+	 * Extract all your WhatsApp conversations & save them to a file
+	 * produceAnonData => should the Id of the chat be recorded
+	 * */
+	extractChats() {
+		this.client.connect(null)
+			.then(([_, chats]) => {
+				this.chats = chats
+				this.extract()
+			})
+			.catch(err => console.log("got error:", err))
+	}
+
 }
-let creds = null//JSON.parse(fs.readFileSync("auth_info.json"))
-extractChats(creds, "output.csv")
+
+new ChatExtractor(null, "output.csv").extractChats()
