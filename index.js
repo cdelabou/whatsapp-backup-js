@@ -1,4 +1,4 @@
-const WhatsAppWeb = require("../WhatsAppWeb")
+const WhatsAppWeb = require("baileys")
 const fs = require("fs")
 
 /**
@@ -7,6 +7,7 @@ const fs = require("fs")
  * */
 function extractChats (authCreds, outputFile, produceAnonData=false, offset=null) {
 	let client = new WhatsAppWeb() // instantiate an instance
+	client.autoReconnect = true
 	// internal extract function
 	const extract = function () {
 		let rows = 0
@@ -78,7 +79,7 @@ function extractChats (authCreds, outputFile, produceAnonData=false, offset=null
 				.then (() => console.log("finished extraction for " + id))
 				.then (() => {
 					if (index+1 < chats.length) {
-						return extractChat(index+1)
+						// return extractChat(index+1)
 					}
 				})
 		}
@@ -91,7 +92,7 @@ function extractChats (authCreds, outputFile, produceAnonData=false, offset=null
 	}
 	client.connect (authCreds)
 		.then (() => extract())
-		.catch (err => console.log("got error: " + error))
+		.catch (err => console.log("got error: " + err))
 }
 let creds = null//JSON.parse(fs.readFileSync("auth_info.json"))
 extractChats(creds, "output.csv")
