@@ -1,16 +1,14 @@
 const WhatsAppWeb = require("baileys")
 const fs = require("fs")
 
+const loadEntireConversation = require("./loadEntireConversation");
+
 class ChatExtractor {
 	client = new WhatsAppWeb() // instantiate an instance
 	chats
-	offset
-	produceAnonData
 	outputFile
 
-	constructor(authCreds, outputFile, produceAnonData = false, offset = null) {
-		this.offset = offset;
-		this.produceAnonData = produceAnonData
+	constructor(outputFile) {
 		this.outputFile = outputFile
 
 		this.client.autoReconnect = true
@@ -19,11 +17,6 @@ class ChatExtractor {
 
 	extract() {
 		let rows = 0
-		this.encounteredOffset = !this.offset
-
-		if (!this.offset) {
-			fs.writeFileSync(this.outputFile, "chat,input,output\n") // write header to file
-		}
 
 		this.extractChat(0)
 			.then(() => {
@@ -39,59 +32,37 @@ class ChatExtractor {
 	 */
 	extractChat(index) {
 		const id = this.chats[index][1].jid
-		if (id.includes("g.us") || !this.encounteredOffset) { // skip groups
-			if (id === this.offset) {
-				this.encounteredOffset = true
-			}
-			if (index + 1 < this.chats.length) {
-				return this.extractChat(index + 1)
-			}
-			return
-		}
 		console.log("extracting for " + id + "...")
-		var curInput = ""
-		var curOutput = ""
-		var lastMessage
-		return this.client.loadEntireConversation(id, m => {
-				var text
+		return loadEntireConversation(this.client, id, m => {
+				let result = {
+					conversation: id,
+					fromMe: m.key.fromMe,
+					timestamp: (
+						(m.messageTimestamp.high << 32) +
+						(m.messageTimestamp.low < 0 ? m.messageTimestamp.low + 1 << 32 : m.messageTimestamp.low)
+					) * 1000
+				}
+
+				if (m.participant) {
+					result.participant = m.participant;
+				}
+
 				if (!m.message) { // if message not present, return
 					return
 				} else if (m.message.conversation) { // if its a plain text message
-					text = m.message.conversation
-				} else if (m.message.extendedTextMessage && m.message.extendedTextMessage.contextInfo) { // if its a reply to a previous message
-					const mText = m.message.extendedTextMessage.text
-					const quotedMessage = m.message.extendedTextMessage.contextInfo.quotedMessage
-					// if it's like a '.' and the quoted message has no text, then just forget it
-					if (mText.length <= 2 && !quotedMessage.conversation) {
-						return
-					}
-					// if somebody sent like a '.', then the text should be the quoted message
-					if (mText.length <= 2) {
-						text = quotedMessage.conversation
-					} else { // otherwise just use this text
-						text = mText
-					}
+					result.text = m.message.conversation
+				} else if (m.message.extendedTextMessage && m.message.extendedTextMessage.contextInfo &&
+					m.message.extendedTextMessage.contextInfo.quotedMessage) { // if its a reply to a previous message
+
+					result.text = m.message.extendedTextMessage.text
+					result.quoted = m.message.extendedTextMessage.contextInfo.quotedMessage.conversation
 				} else {
 					return
 				}
-				// if the person who sent the message has switched, flush the row
-				if (lastMessage && !m.key.fromMe && lastMessage.key.fromMe) {
 
-					let row = "" + (this.produceAnonData ? "" : id) + ",\"" + curInput + "\",\"" + curOutput + "\"\n"
-					fs.appendFileSync(this.outputFile, row)
-					rows += 1
-					curInput = ""
-					curOutput = ""
-				}
-
-				if (m.key.fromMe) {
-					curOutput += curOutput === "" ? text : ("\n" + text)
-				} else {
-					curInput += curInput === "" ? text : ("\n" + text)
-				}
-
-				lastMessage = m
-			}, 50, false) // load from the start, in chunks of 50
+				fs.appendFileSync(this.outputFile, JSON.stringify(result) + "\n")
+				this.rows += 1
+			}, 100)
 			.then(() => console.log("finished extraction for " + id))
 			.then(() => {
 				if (index + 1 < this.chats.length) {
@@ -102,9 +73,10 @@ class ChatExtractor {
 
 	/**
 	 * Extract all your WhatsApp conversations & save them to a file
-	 * produceAnonData => should the Id of the chat be recorded
 	 * */
 	extractChats() {
+		fs.writeFileSync(this.outputFile, "");
+
 		this.client.connect(null)
 			.then(([_, chats]) => {
 				this.chats = chats
@@ -115,4 +87,4 @@ class ChatExtractor {
 
 }
 
-new ChatExtractor(null, "output.csv").extractChats()
+new ChatExtractor("output.csv").extractChats()
