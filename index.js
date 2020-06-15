@@ -1,8 +1,6 @@
 const WhatsAppWeb = require("baileys")
 const fs = require("fs")
 
-const loadEntireConversation = require("./loadEntireConversation");
-
 class ChatExtractor {
 	client = new WhatsAppWeb() // instantiate an instance
 	chats
@@ -33,7 +31,7 @@ class ChatExtractor {
 	extractChat(index) {
 		const id = this.chats[index][1].jid
 		console.log("extracting for " + id + "...")
-		return loadEntireConversation(this.client, id, m => {
+		return this.client.loadEntireConversation(id, m => {
 				let result = {
 					conversation: id,
 					fromMe: m.key.fromMe,
@@ -73,7 +71,7 @@ class ChatExtractor {
 
 	/**
 	 * Extract all your WhatsApp conversations & save them to a file
-	 * */
+	 */
 	extractChats() {
 		fs.writeFileSync(this.outputFile, "");
 
