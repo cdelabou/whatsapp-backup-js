@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "baileys": "https://github.com/banilaste/Baileys.git"
+    "baileys": "https://github.com/adiwajshing/Baileys.git#cb3d40ce8c759c84a4642ad1f07c01e14c1cbd66"
   },
   "devDependencies": {},
   "scripts": {

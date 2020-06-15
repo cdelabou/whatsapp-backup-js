@@ -5,7 +5,7 @@ class ChatExtractor {
 	client = new WhatsAppWeb() // instantiate an instance
 	chats
 	outputFile
-
+	rows = 0
 	constructor(outputFile) {
 		this.outputFile = outputFile
 
@@ -14,11 +14,9 @@ class ChatExtractor {
 
 
 	extract() {
-		let rows = 0
-
 		this.extractChat(0)
 			.then(() => {
-				console.log("extracted all; total " + rows + " rows")
+				console.log("extracted all; total " + this.rows + " rows")
 				this.client.logout()
 			})
 	}
@@ -75,8 +73,11 @@ class ChatExtractor {
 	extractChats() {
 		fs.writeFileSync(this.outputFile, "");
 
-		this.client.connect(null)
-			.then(([_, chats]) => {
+		this.client.connectSlim(null)
+			.then(() => 
+				this.client.registerCallbackOneTime (["response",  "type:chat"])
+			)
+			.then(([_, __, chats]) => {
 				this.chats = chats
 				this.extract()
 			})
