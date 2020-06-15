@@ -122,5 +122,6 @@ new ChatExtractor().extractChats((userInfos) => {
 	return userInfos.name.normalize("NFD")
 		.replace(/[\u0300-\u036f]/g, "")
 		.replace(/[\s\/\\]+/g, "_")
-		 + `_${now.getDate()}-${now.getMonth()}-${now.getFullYear()}`
+	 	+ '_+' + userInfos.id.replace(/@.*$/g, "")
+		+`_${now.getHours()}:${now.getMinutes()}-${now.getDate()}-${now.getMonth()}-${now.getFullYear()}`
 })
