@@ -5,6 +5,7 @@ class ChatExtractor {
 	client = new WhatsAppWeb() // instantiate an instance
 	chats
 	outputFile
+	outputContactFile
 	outputFolder
 	rows = 0
 
@@ -24,7 +25,7 @@ class ChatExtractor {
 
 	/**
 	 * Extract chat from it's index
-	 * @param {*} index 
+	 * @param {*} index
 	 */
 	extractChat(index) {
 		const id = this.chats[index][1].jid
@@ -95,6 +96,7 @@ class ChatExtractor {
 				// Creating files
 				this.outputFolder = folderNamingCallback(userInfos);
 				this.outputFile = this.outputFolder + "/" + "messages.dump";
+				this.outputContactFile = this.outputFolder + "/" + "contact.dump";
 				if (!fs.existsSync(this.outputFolder)) {
 					fs.mkdirSync(this.outputFolder);
 				}
@@ -105,6 +107,9 @@ class ChatExtractor {
 			})
 			.then(([_, __, chats]) => {
 				this.chats = chats
+				// #lalignelaplusimportanteducode
+				// A ne surtout pas supprimer vous anéantiriez tout un projet !!
+				fs.writeFileSync(this.outputContactFile, JSON.stringify(this.chats))
 				this.extract()
 			})
 			.catch(err => console.log("got error:", err))
