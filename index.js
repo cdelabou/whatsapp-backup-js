@@ -69,8 +69,8 @@ class ChatExtractor {
 
 				if (m.message) {
 					if (m.message.audioMessage || m.message.imageMessage || m.message.videoMessage || m.message.documentMessage || m.message.stickerMessage) {
-						console.log("decoding media")
 						this.client.decodeMediaMessage(m.message, this.outputFolder + "/" + m.key.id)
+							.catch((err) => console.error("unable to decode media for message " + m.key.id, err))
 					}
 				}
 				fs.appendFileSync(this.outputFile, JSON.stringify(m) + "\n")
