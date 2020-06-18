@@ -2,6 +2,9 @@
 
 Extracteur de conversations whatsapp basé sur la librairie [Baileys](https://github.com/adiwajshing/Baileys).
 
+## Documentation de l'API
+Nous avons réalisé une [documentation de l'API](./MESSAGES.md).
+
 ## Installation et lancement
 Pour utiliser et installer l'outil il faut disposer de [Node.JS](https://nodejs.org/en/) (version 14), npm et git.
 ```sh
